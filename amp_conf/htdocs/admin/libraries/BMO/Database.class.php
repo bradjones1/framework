@@ -107,9 +107,7 @@ class Database extends \PDO {
 			$dsnarr['unix_socket'] = $amp_conf['AMPDBSOCK'];
 		}
 
-		// Always utf8.
-		// TODO:  This should default to utf8mb on a newer mysql, or newer FreePBX?
-		$charset = "utf8";
+		$charset = "utf8mb4";
 		$dsnarr['charset'] = isset($dsnarr['charset']) ? $dsnarr['charset'] : $charset;
 
 		// Were there any database options?
