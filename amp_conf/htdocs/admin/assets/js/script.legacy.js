@@ -1743,7 +1743,7 @@ $(document).ready(function() {
 	 */
 	$("form").submit(function(e) {
 		// If the page isn't going to submit then don't remove the elements
-		if (!e.isDefaultPrevented()) {
+		if (e.result) {
 			$(".destdropdown2").filter(".hidden").remove();
 		}
 	});
