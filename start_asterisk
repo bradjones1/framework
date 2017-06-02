@@ -3,7 +3,7 @@
 
 ROOT_UID=0	 # root uid is 0
 E_NOTROOT=67	 # Non-root exit error
-
+ASTETC=${ASTETC-/etc/asterisk}
 echo
 # check to see if we are root
 if [ "$UID" -ne "$ROOT_UID" ]
@@ -12,10 +12,28 @@ then
 	echo
 	exit $E_NOTROOT
 fi
-
+touchmodules(){
+	#Make sure our directory is a thing.
+	mkdir -p /etc/sangoma
+	if [ ! -f /etc/sangoma/conftouchhasrun ]; then
+			if [ ! -f /etc/sangoma/confmodlist ]; then
+				echo "Getting conf file list."
+					curl -f -s --connect-timeout 4 https://api.github.com/repositories/33784533/contents/configs/samples | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w name  | cut -d":" -f2| sed -e 's/^ *//g' -e 's/ *$//g' | cut -d"." -f1,2 > /etc/sangoma/confmodlist || CURLFAIL=1
+			fi;
+			echo "Touching conf files"
+			if [ $CURLFAIL -ne 1 ]; then
+				while read c; do
+					if [ ! -f $ASTETC/$c ]; then
+		  			touch $ASTETC/$c
+					fi
+				done </etc/sangoma/confmodlist
+				touch /etc/sangoma/conftouchhasrun
+			fi
+		fi
+}
 check_asterisk() {
 # check to see if asterisk is running
-# Note, this isn't fool-proof.  If safe_asterisk is constantly restarting a dying asterisk, then there is a chance pidof will return non zero.  
+# Note, this isn't fool-proof.  If safe_asterisk is constantly restarting a dying asterisk, then there is a chance pidof will return non zero.
 # We call this twice to reduce chances of this happening
 pid_length=`pidof asterisk|awk '{print length($0)}'`
 	if [ "$pid_length" == "0" -a "$pid_length" != "" ]
@@ -40,6 +58,7 @@ pid_length=`pidof asterisk|awk '{print length($0)}'`
 		then
 			echo "Asterisk is already running"
 		else
+			touchmodules
 			# su - asterisk -c "export PATH=$PATH:/usr/sbin && export LD_LIBRARY_PATH=/usr/local/lib && /usr/sbin/safe_asterisk"
 			export LD_LIBRARY_PATH=/usr/local/lib
 			/usr/sbin/safe_asterisk -U asterisk -G asterisk
@@ -100,4 +119,3 @@ case "$1" in
 		exit 1
 	;;
 esac
-
